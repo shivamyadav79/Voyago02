@@ -10,15 +10,27 @@ const Navbar = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
+  const [prevScrollY, setPrevScrollY] = useState(0); // Track previous scroll position
+  const [navbarVisible, setNavbarVisible] = useState(true); // Track navbar visibility
   const location = useLocation();
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolling(window.scrollY > 50);
+      const currentScrollY = window.scrollY;
+
+      // Show or hide navbar based on scroll direction
+      if (currentScrollY > prevScrollY) {
+        setNavbarVisible(false); // Scrolling down
+      } else {
+        setNavbarVisible(true); // Scrolling up
+      }
+
+      setPrevScrollY(currentScrollY); // Update previous scroll position
     };
+
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [prevScrollY]);
 
   useEffect(() => {
     if (query.length > 1) {
@@ -31,15 +43,15 @@ const Navbar = () => {
     }
   }, [query]);
 
-  const isWhitePage = ["/about", "/contact"].includes(location.pathname);
-  const navTextColor = scrolling || isWhitePage ? "text-black" : "text-white";
+  const navBackground = navbarVisible ? "bg-transparent" : "bg-white shadow-md";
+  const navTextColor = navbarVisible ? "text-black" : "text-black";
 
   return (
     <>
       {/* Navbar */}
       <nav
-        className={`fixed top-0 w-full z-50 transition-all ${
-          scrolling || isWhitePage ? "bg-white shadow-md" : "bg-transparent"
+        className={`fixed top-0 w-full z-50 transition-all ${navBackground} ${
+          navbarVisible ? "translate-y-0" : "-translate-y-full"
         }`}
       >
         <div className="max-w-7xl mx-auto flex justify-between items-center p-4">
@@ -49,16 +61,16 @@ const Navbar = () => {
 
           {/* Desktop Links */}
           <div className={`hidden md:flex space-x-6 ${navTextColor}`}>
-            <Link to="/" className="hover:text-gray-700">
+            <Link to="/" className={`hover:${navTextColor}`}>
               Home
             </Link>
-            <Link to="/cities" className="hover:text-gray-700">
+            <Link to="/cities" className={`hover:${navTextColor}`}>
               Cities
             </Link>
-            <Link to="/about" className="hover:text-gray-700">
+            <Link to="/about" className={`hover:${navTextColor}`}>
               About
             </Link>
-            <Link to="/contact" className="hover:text-gray-700">
+            <Link to="/contact" className={`hover:${navTextColor}`}>
               Contact
             </Link>
           </div>
@@ -97,7 +109,7 @@ const Navbar = () => {
               onClick={() => setMenuOpen(false)}
             >
               Home
-            </Link>
+            </ Link>
             <Link
               to="/cities"
               className="mt-4 text-xl"
