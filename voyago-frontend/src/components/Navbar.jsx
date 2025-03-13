@@ -10,22 +10,15 @@ const Navbar = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
-  const [prevScrollY, setPrevScrollY] = useState(0); // Track previous scroll position
-  const [navbarVisible, setNavbarVisible] = useState(true); // Track navbar visibility
+  const [prevScrollY, setPrevScrollY] = useState(0);
+  const [navbarVisible, setNavbarVisible] = useState(true);
   const location = useLocation();
 
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-
-      // Show or hide navbar based on scroll direction
-      if (currentScrollY > prevScrollY) {
-        setNavbarVisible(false); // Scrolling down
-      } else {
-        setNavbarVisible(true); // Scrolling up
-      }
-
-      setPrevScrollY(currentScrollY); // Update previous scroll position
+      setNavbarVisible(currentScrollY <= prevScrollY);
+      setPrevScrollY(currentScrollY);
     };
 
     window.addEventListener("scroll", handleScroll);
@@ -61,18 +54,14 @@ const Navbar = () => {
 
           {/* Desktop Links */}
           <div className={`hidden md:flex space-x-6 ${navTextColor}`}>
-            <Link to="/" className={`hover:${navTextColor}`}>
-              Home
-            </Link>
-            <Link to="/cities" className={`hover:${navTextColor}`}>
-              Cities
-            </Link>
-            <Link to="/about" className={`hover:${navTextColor}`}>
-              About
-            </Link>
-            <Link to="/contact" className={`hover:${navTextColor}`}>
-              Contact
-            </Link>
+            <Link to="/" className={`hover:${navTextColor}`}>Home</Link>
+            <Link to="/cities" className={`hover:${navTextColor}`}>Cities</Link>
+            <Link to="/places" className={`hover:${navTextColor}`}>Places</Link>
+            <Link to="/about" className={`hover:${navTextColor}`}>About</Link>
+            <Link to="/contact" className={`hover:${navTextColor}`}>Contact</Link>
+            {/* Login and Register Links */}
+            <Link to="/login" className="hover:underline">Login</Link>
+            <Link to="/register" className="hover:underline">Register</Link>
           </div>
 
           {/* Mobile Menu & Search */}
@@ -103,34 +92,14 @@ const Navbar = () => {
               className="w-6 h-6 self-end cursor-pointer"
               onClick={() => setMenuOpen(false)}
             />
-            <Link
-              to="/"
-              className="mt-6 text-xl"
-              onClick={() => setMenuOpen(false)}
-            >
-              Home
-            </ Link>
-            <Link
-              to="/cities"
-              className="mt-4 text-xl"
-              onClick={() => setMenuOpen(false)}
-            >
-              Cities
-            </Link>
-            <Link
-              to="/about"
-              className="mt-4 text-xl"
-              onClick={() => setMenuOpen(false)}
-            >
-              About
-            </Link>
-            <Link
-              to="/contact"
-              className="mt-4 text-xl"
-              onClick={() => setMenuOpen(false)}
-            >
-              Contact
-            </Link>
+            <Link to="/" className="mt-6 text-xl" onClick={() => setMenuOpen(false)}>Home</Link>
+            <Link to="/cities" className="mt-4 text-xl" onClick={() => setMenuOpen(false)}>Cities</Link>
+            <Link to="/places" className="mt-4 text-xl" onClick={() => setMenuOpen(false)}>Places</Link>
+            <Link to="/about" className="mt-4 text-xl" onClick={() => setMenuOpen(false)}>About</Link>
+            <Link to="/contact" className="mt-4 text-xl" onClick={() => setMenuOpen(false)}>Contact</Link>
+            {/* Login and Register for Mobile */}
+            <Link to="/login" className="mt-4 text-xl text-blue-600" onClick={() => setMenuOpen(false)}>Login</Link>
+            <Link to="/register" className="mt-4 text-xl bg-blue-500 text-white px-4 py-2 rounded text-center hover:bg-blue-600" onClick={() => setMenuOpen(false)}>Register</Link>
           </motion.div>
         )}
       </AnimatePresence>
@@ -166,11 +135,11 @@ const Navbar = () => {
                   {results.map((item, index) => (
                     <Link
                       key={index}
-                      to={`/city/${item.id}`}
+                      to={item.type === "city" ? `/city/${item.id}` : `/place/${item.id}`}
                       className="block p-2 hover:bg-gray-100 rounded"
                       onClick={() => setSearchOpen(false)}
                     >
-                      {item.name}
+                      {item.name} ({item.type})
                     </Link>
                   ))}
                 </div>

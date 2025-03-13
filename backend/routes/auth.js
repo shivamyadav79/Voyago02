@@ -19,6 +19,8 @@ router.post("/register", register);
 router.post("/login", login);
 router.get("/me", authenticateToken, getProfile);
 router.get("/verify-email", verifyEmail);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
 
 // Google OAuth: Initiate authentication with proper scopes
 router.get(

@@ -1,30 +1,25 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
-
-// Use environment variable for the API URL if available
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5002/api";
+import { fetchCities } from "../../api/api.js"; // Import the function
 
 const CitySection = () => {
   const [cities, setCities] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Fetch all cities from /cities/get-cities
   useEffect(() => {
-    const fetchCities = async () => {
+    const getCities = async () => {
       try {
-        const response = await axios.get(`${BASE_URL}/cities/get-cities`);
-        setCities(response.data);
+        const data = await fetchCities(); // Call API function
+        setCities(data);
       } catch (error) {
-        console.error("Error fetching cities:", error);
+        console.error("Failed to fetch cities");
       }
     };
 
-    fetchCities();
+    getCities();
   }, []);
 
-  // Auto-switch city every 4 seconds
   useEffect(() => {
     if (cities.length > 0) {
       const interval = setInterval(() => {
@@ -41,7 +36,6 @@ const CitySection = () => {
     exit: { opacity: 0 },
   };
 
-  // If a valid city ID exists, wrap the content in a Link for navigation.
   return (
     <section className="relative w-full max-w-7xl mx-auto py-8 flex flex-col md:flex-row items-center gap-6">
       {currentCity._id ? (
@@ -59,8 +53,7 @@ const CitySection = () => {
                 {currentCity.name || "Unknown City"}
               </h3>
               <p className="text-gray-700">
-                {currentCity.description ||
-                  "No description available for this city."}
+                {currentCity.description || "No description available for this city."}
               </p>
             </motion.div>
           </AnimatePresence>
@@ -68,9 +61,7 @@ const CitySection = () => {
       ) : (
         <div className="flex-1">
           <h3 className="text-xl font-semibold mb-2">Unknown City</h3>
-          <p className="text-gray-700">
-            No description available for this city.
-          </p>
+          <p className="text-gray-700">No description available for this city.</p>
         </div>
       )}
 
@@ -87,7 +78,7 @@ const CitySection = () => {
               className="w-full md:w-auto"
             >
               <img
-                src={currentCity.imageUrl || "/placeholder.jpg"}
+                src={currentCity.image || "/placeholder.jpg"}
                 alt={currentCity.name || "City Image"}
                 className="object-cover rounded w-full md:w-[400px] h-auto shadow"
               />

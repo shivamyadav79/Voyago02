@@ -84,3 +84,28 @@ export const deletePlace = async (req, res) => {
     res.status(500).json({ message: 'Place deletion failed', error: error.message });
   }
 };
+
+export const getPlacesByCity = async (req, res) => {
+  try {
+    const { cityId } = req.params;
+    console.log("Fetching places for cityId:", cityId); // ✅ Debugging Log
+
+    if (!mongoose.Types.ObjectId.isValid(cityId)) {
+      return res.status(400).json({ message: "Invalid city ID" });
+    }
+
+    const places = await Place.find({ city: cityId }).populate("city");
+    
+    if (!places.length) {
+      return res.status(404).json({ message: "No places found for this city." });
+    }
+
+    console.log("Found places:", places); // ✅ Debugging Log
+    res.status(200).json(places);
+  } catch (error) {
+    console.error("Error fetching places by city:", error);
+    res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
+

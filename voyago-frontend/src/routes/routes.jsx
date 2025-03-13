@@ -1,29 +1,39 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Home from "../pages/Home";
-import Cities from "../pages/Cities";
-import About from "../pages/About";
-import Contact from "../pages/Contact";
+import { lazy, Suspense } from "react";
 import Layout from "../layout/Layout";
-import CityDetails from "../pages/CityDetails"; // <-- import your CityDetails page
+import LoadingSpinner from "../components/LoadingSpinner";
+
+const Home = lazy(() => import("../pages/Home"));
+const Cities = lazy(() => import("../pages/Cities"));
+const About = lazy(() => import("../pages/About"));
+const Contact = lazy(() => import("../pages/Contact"));
+const CityDetails = lazy(() => import("../pages/CityDetails"));
+const PlaceDetails = lazy(() => import("../pages/PlacesDetails"));
+const Places = lazy(() => import("../pages/Places"));
+const Login = lazy(() => import("../pages/Login"));
+const Register = lazy(() => import("../pages/Registration"));
+
 
 const AppRoutes = () => {
   return (
     <Router>
-      <Routes>
-        <Route path="/*" element={<Layout />}>
-          {/* Index route for home */}
-          <Route index element={<Home />} />
-
-          {/* Cities listing page */}
-          <Route path="cities" element={<Cities />} />
-
-          {/* CityDetails page for a specific city by ID */}
-          <Route path="cities/:id" element={<CityDetails />} />
-
-          <Route path="about" element={<About />} />
-          <Route path="contact" element={<Contact />} />
-        </Route>
-      </Routes>
+      <Suspense fallback={<div>
+        <LoadingSpinner />
+      </div>}>
+        <Layout>
+          <Routes>
+            <Route index element={<Home />} />
+            <Route path="cities" element={<Cities />} />
+            <Route path="cities/:id" element={<CityDetails />} />
+            <Route path="places" element={<Places />} />
+            <Route path="places/:id" element={<PlaceDetails />} />
+            <Route path="about" element={<About />} />
+            <Route path="contact" element={<Contact />} />
+            <Route path="login" element={<Login />} />
+            <Route path="register" element={<Register />} />
+          </Routes>
+        </Layout>
+      </Suspense>
     </Router>
   );
 };
