@@ -1,128 +1,94 @@
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import axios from "axios";
-import { Google as GoogleIcon } from "@mui/icons-material";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useDispatch, useSelector } from "react-redux";
+import { registerUser } from "../Store/Slice/authSlice.js";
+import { Link, useNavigate } from "react-router-dom";
+import * as z from "zod";
+import { useEffect } from "react";
 
-const ChatRegistration = () => {
-    const [step, setStep] = useState(0);
-    const [formData, setFormData] = useState({ email: "", username: "", password: "" });
-    const [messageLog, setMessageLog] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+// Validation Schema
+const schema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
 
-    // Dynamic Greeting
-    const getGreeting = () => {
-        const hour = new Date().getHours();
-        if (hour < 12) return "Good morning!";
-        if (hour < 18) return "Good afternoon!";
-        return "Good evening!";
-    };
+const Register = () => {
+  const dispatch = useDispatch();
+  const { loading, user, error } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
 
-    // Add messages to chat
-    const addMessage = (text, sender = "bot") => {
-        setMessageLog((prev) => [...prev, { text, sender }]);
-    };
+  useEffect(() => {
+    if (user) navigate("/");
+  }, [user, navigate]);
 
-    // Handle user input
-    const handleUserInput = (input) => {
-        addMessage(input, "user");
-        if (step === 0) {
-            setFormData({ ...formData, email: input });
-            checkEmailExists(input);
-        } else if (step === 1) {
-            setFormData({ ...formData, username: input });
-            addMessage("Nice! Now, please set a secure password.");
-            setStep(2);
-        } else if (step === 2) {
-            setFormData({ ...formData, password: input });
-            submitForm();
-        }
-    };
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({ resolver: zodResolver(schema) });
 
-    // Check if email already exists
-    const checkEmailExists = async (email) => {
-        setLoading(true);
-        try {
-            const res = await axios.post("http://localhost:5002/api/auth/check-email", { email });
-            if (res.data.exists) {
-                addMessage("This email is already in use. Try another one.");
-                setLoading(false);
-            } else {
-                addMessage("Great! Now, choose a username.");
-                setStep(1);
-                setLoading(false);
-            }
-        } catch (error) {
-            addMessage("Error checking email. Please try again.");
-            setLoading(false);
-        }
-    };
+  const onSubmit = (data) => {
+    dispatch(registerUser(data));
+  };
 
-    // Submit user data
-    const submitForm = async () => {
-        setLoading(true);
-        try {
-            const res = await axios.post("http://localhost:5002/api/auth/register", formData);
-            if (res.data.success) {
-                addMessage("You're all set! 🎉 Registration complete.");
-            } else {
-                addMessage("Something went wrong. Please try again.");
-            }
-        } catch (error) {
-            setError("Error submitting registration.");
-        }
-        setLoading(false);
-    };
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-96">
+        <h2 className="text-2xl font-semibold text-center mb-4">Register</h2>
 
-    // Handle Google OAuth Registration
-    const handleGoogleSignUp = () => {
-        window.open("http://localhost:5002/api/auth/google", "_self");
-    };
+        {error && <p className="text-red-500 text-center">{error}</p>}
 
-    useEffect(() => {
-        addMessage(`${getGreeting()} Welcome to our platform!`);
-        setTimeout(() => {
-            addMessage("Let's get you registered. What's your email?");
-        }, 1000);
-    }, []);
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div>
+            <input
+              {...register("name")}
+              placeholder="Full Name"
+              className="w-full p-2 border rounded"
+              required
+              aria-invalid={errors.name ? "true" : "false"}
+            />
+            {errors.name && <p className="text-red-500">{errors.name.message}</p>}
+          </div>
 
-    return (
-        <div className="max-w-lg mx-auto mt-10 p-6 bg-white rounded-lg shadow-lg">
-            <h2 className="text-2xl font-bold text-center mb-4">Sign Up</h2>
+          <div>
+            <input
+              {...register("email")}
+              placeholder="Email"
+              className="w-full p-2 border rounded"
+              required
+              aria-invalid={errors.email ? "true" : "false"}
+            />
+            {errors.email && <p className="text-red-500">{errors.email.message}</p>}
+          </div>
 
-            <div className="h-80 overflow-y-auto bg-gray-100 p-4 rounded-lg">
-                {messageLog.map((msg, i) => (
-                    <motion.div
-                        key={i}
-                        initial={{ opacity: 0, x: msg.sender === "bot" ? -20 : 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className={`mb-2 p-2 rounded-lg w-fit ${
-                            msg.sender === "bot" ? "bg-blue-200 text-blue-900" : "bg-green-200 text-green-900 ml-auto"
-                        }`}
-                    >
-                        {msg.text}
-                    </motion.div>
-                ))}
-            </div>
+          <div>
+            <input
+              {...register("password")}
+              type="password"
+              placeholder="Password"
+              className="w-full p-2 border rounded"
+              required
+              aria-invalid={errors.password ? "true" : "false"}
+            />
+            {errors.password && <p className="text-red-500">{errors.password.message}</p>}
+          </div>
 
-            {error && <p className="text-red-500 mt-2">{error}</p>}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full p-2 bg-blue-500 text-white rounded"
+          >
+            {loading ? "Registering..." : "Register"}
+          </button>
+        </form>
 
-            {step < 3 && (
-                <input
-                    type={step === 2 ? "password" : "text"}
-                    placeholder={step === 2 ? "Enter password" : "Type here..."}
-                    className="w-full p-2 mt-2 border rounded-md"
-                    disabled={loading}
-                    onKeyDown={(e) => e.key === "Enter" && handleUserInput(e.target.value)}
-                />
-            )}
-
-            <button onClick={handleGoogleSignUp} className="mt-4 w-full flex items-center justify-center gap-2 bg-red-500 text-white p-2 rounded">
-                <GoogleIcon className="w-5 h-5" /> Sign up with Google
-            </button>
-        </div>
-    );
+        <p className="text-center mt-4">
+          Already have an account? <Link to="/login" className="text-blue-500">Login</Link>
+        </p>
+      </div>
+    </div>
+  );
 };
 
-export default ChatRegistration;
+export default Register;

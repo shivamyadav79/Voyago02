@@ -1,42 +1,45 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5002/api";
+
+
+
+axios.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+}, (error) => Promise.reject(error));
+
+
+
 
 // ✅ Register User
-export const registerUser = createAsyncThunk(
-  "auth/registerUser",
-  async (userData, { rejectWithValue }) => {
-    try {
-      const response = await axios.post("/api/auth/register", userData);
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data || "Registration failed"
-      );
-    }
+
+export const registerUser = createAsyncThunk("auth/register", async (userData, { rejectWithValue }) => {
+  try {
+    const { data } = await axios.post(`${API_URL}/auth/register`, userData);
+    return data;
+  } catch (error) {
+    return rejectWithValue(error.response?.data?.message || "Registration failed");
   }
-);
+});
 
 // ✅ Login User
-export const loginUser = createAsyncThunk(
-  "auth/loginUser",
-  async (credentials, { rejectWithValue }) => {
-    try {
-      const response = await axios.post("/api/auth/login", credentials);
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data || "Login failed"
-      );
-    }
+export const loginUser = createAsyncThunk("auth/login", async (userData, { rejectWithValue }) => {
+  try {
+    const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, userData);
+    return data;
+  } catch (error) {
+    return rejectWithValue(error.response?.data?.message || "Login failed.");
   }
-);
+});
 
 // ✅ Get Profile
-export const fetchProfile = createAsyncThunk(
-  "auth/fetchProfile",
+export const me = createAsyncThunk(
+  "auth/me",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get("/api/auth/me", { withCredentials: true });
+      const response = await axios.get(`${API_URL}/me`, { withCredentials: true });
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -47,11 +50,11 @@ export const fetchProfile = createAsyncThunk(
 );
 
 // ✅ Logout User
-export const logoutUser = createAsyncThunk(
-  "auth/logoutUser",
+export const logout = createAsyncThunk(
+  "auth/logout",
   async (_, { rejectWithValue }) => {
     try {
-      await axios.post("/api/auth/logout", {}, { withCredentials: true });
+      await axios.post(`${API_URL}/logout`, {}, { withCredentials: true });
       return null;
     } catch (error) {
       return rejectWithValue(
@@ -63,32 +66,37 @@ export const logoutUser = createAsyncThunk(
 
 // ✅ Forgot Password (Send Reset Link)
 export const forgotPassword = createAsyncThunk(
-  "auth/forgotPassword",
+  "auth/forgot-password", // 🔥 Fixed typo
   async (email, { rejectWithValue }) => {
     try {
-      const response = await axios.post("/api/auth/forgot-password", { email });
-      return response.data.message; // Assuming backend sends a success message
+      const response = await axios.post(`${API_URL}/forgot-password`, { email });
+      return response.data.message;
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data || "Failed to send reset email"
-      );
+      return rejectWithValue(error.response?.data || "Failed to send reset email");
     }
   }
 );
+export const google = createAsyncThunk("auth/google", async (_, { rejectWithValue }) => {
+  try {
+    const response = await axios.get(`${API_URL}/google`, { withCredentials: true });
+    return response.data;
+  } catch (error) {
+    return rejectWithValue(error.response?.data?.message || "Google Login failed");
+  }
+});
+
 
 // ✅ Reset Password
 export const resetPassword = createAsyncThunk(
-  "auth/resetPassword",
+  "auth/reset-password", // 🔥 Fixed typo
   async ({ token, newPassword }, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`/api/auth/reset-password/${token}`, {
+      const response = await axios.post(`${API_URL}/reset-password/${token}`, {
         password: newPassword,
       });
-      return response.data.message; // Assuming backend sends a success message
+      return response.data.message;
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data || "Failed to reset password"
-      );
+      return rejectWithValue(error.response?.data || "Failed to reset password");
     }
   }
 );
@@ -134,8 +142,7 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
+        state.user = action.payload;
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
@@ -143,31 +150,34 @@ const authSlice = createSlice({
       })
 
       // ✅ Fetch Profile
-      .addCase(fetchProfile.pending, (state) => {
+      .addCase(me.pending, (state) => {
         state.loading = true;
       })
-      .addCase(fetchProfile.fulfilled, (state, action) => {
+      .addCase(me.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload;
       })
-      .addCase(fetchProfile.rejected, (state, action) => {
+      .addCase(me.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
 
       // ✅ Logout User
-      .addCase(logoutUser.pending, (state) => {
+      .addCase(logout.pending, (state) => {
         state.loading = true;
       })
-      .addCase(logoutUser.fulfilled, (state) => {
+      .addCase(logout.fulfilled, (state) => {
         state.loading = false;
         state.user = null;
         state.token = null;
+        state.error = null;
+        localStorage.removeItem("token"); // Already resets state, so remove redundant reset
       })
-      .addCase(logoutUser.rejected, (state, action) => {
+      .addCase(logout.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
+      // Removed duplicate case for 'logout.fulfilled'
 
       // ✅ Forgot Password
       .addCase(forgotPassword.pending, (state) => {
@@ -195,6 +205,21 @@ const authSlice = createSlice({
       .addCase(resetPassword.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      .addCase(google.pending, (state) => { state.loading = true; })
+      .addCase(google.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+        if (action.payload.token) {
+          localStorage.setItem("token", action.payload.token); // 🔥 Store token if received
+        }
+        state.error = null;
+      })
+      .addCase(google.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        state.user = null;
       });
   },
 });

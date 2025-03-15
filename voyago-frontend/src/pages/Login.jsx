@@ -1,102 +1,72 @@
-import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { useDispatch, useSelector } from "react-redux";
+import { loginUser } from "../Store/Slice/authSlice";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { useEffect } from "react";
 
 const Login = () => {
-  const [formData, setFormData] = useState({ email: "", password: "" });
-  const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
+  const dispatch = useDispatch();
+  const { loading, user, error } = useSelector((state) => state.auth);
   const navigate = useNavigate();
 
-  // Handle input changes
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    setErrors({ ...errors, [e.target.name]: "" });
+  useEffect(() => {
+    if (user) navigate("/");
+  }, [user, navigate]);
+
+  const { register, handleSubmit } = useForm();
+
+  const onSubmit = (data) => {
+    dispatch(loginUser(data));
   };
 
-  // Validate form
-  const validate = () => {
-    let newErrors = {};
-    if (!formData.email) newErrors.email = "Email is required";
-    if (!formData.password) newErrors.password = "Password is required";
-    return newErrors;
-  };
-
-  // Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const newErrors = validate();
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    setLoading(true);
-    setMessage("");
-
-    try {
-      const res = await axios.post("http://localhost:5002/api/auth/login", formData);
-      setMessage("Login successful!");
-      localStorage.setItem("token", res.data.token);
-      navigate("/dashboard");
-    } catch (error) {
-      setMessage("Invalid credentials. Please try again.");
-    }
-
-    setLoading(false);
+  const handleGoogleLogin = () => {
+    window.location.href = `${import.meta.env.VITE_API_URL}/google`;
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="bg-white p-8 shadow-lg rounded-lg w-96">
-        <h2 className="text-2xl font-bold text-center mb-6">Login</h2>
+      <div className="bg-white p-8 rounded-lg shadow-lg w-96">
+        <h2 className="text-2xl font-semibold text-center mb-4">Login</h2>
 
-        {message && <p className="text-red-500 text-sm mb-4">{message}</p>}
+        {error && <p className="text-red-500 text-center">{error}</p>}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Email Field */}
-          <div>
-            <label className="block text-sm font-medium">Email</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border rounded-md focus:ring"
-              placeholder="Enter your email"
-            />
-            {errors.email && <p className="text-red-500 text-xs">{errors.email}</p>}
-          </div>
-
-          {/* Password Field */}
-          <div>
-            <label className="block text-sm font-medium">Password</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border rounded-md focus:ring"
-              placeholder="Enter your password"
-            />
-            {errors.password && <p className="text-red-500 text-xs">{errors.password}</p>}
-          </div>
-
-          {/* Submit Button */}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <input
+            {...register("email")}
+            placeholder="Email"
+            className="w-full p-2 border rounded"
+          />
+          <input
+            {...register("password")}
+            type="password"
+            placeholder="Password"
+            className="w-full p-2 border rounded"
+          />
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition"
             disabled={loading}
+            className="w-full p-2 bg-blue-500 text-white rounded"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
 
-        {/* Redirect to Register */}
-        <p className="text-center text-sm mt-4">
-          Don't have an account?{" "}
-          <Link to="/register" className="text-blue-600 hover:underline">
+        <button
+          onClick={handleGoogleLogin}
+          className="w-full p-2 bg-red-500 text-white rounded mt-4"
+        >
+          Login with Google
+        </button>
+
+        <p className="text-center mt-4">
+          Forgot password?{" "}
+          <Link to="/forgot-password" className="text-blue-500">
+            Reset
+          </Link>
+        </p>
+        <p className="text-center mt-4">
+          New user?{" "}
+          <Link to="/register" className="text-blue-500">
             Register
           </Link>
         </p>

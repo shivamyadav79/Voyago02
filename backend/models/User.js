@@ -1,16 +1,16 @@
-// models/User.js
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 const UserSchema = new mongoose.Schema(
   {
-    // For traditional users, username and password are used;
-    // For Google users, googleId is stored instead.
     username: { type: String, required: false },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: function () { return !this.googleId; } },
     googleId: { type: String, unique: true, sparse: true },
     avatar: { type: String },
+    
+    // ✅ Add the `isVerified` field (default: false)
+    isVerified: { type: Boolean, default: false }
   },
   { timestamps: true }
 );
@@ -19,7 +19,6 @@ const UserSchema = new mongoose.Schema(
 UserSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   try {
-    // Only hash if password is set
     if (this.password) {
       const salt = await bcrypt.genSalt(10);
       this.password = await bcrypt.hash(this.password, salt);

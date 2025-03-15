@@ -12,6 +12,7 @@ const PlaceDetails = lazy(() => import("../pages/PlacesDetails"));
 const Places = lazy(() => import("../pages/Places"));
 const Login = lazy(() => import("../pages/Login"));
 const Register = lazy(() => import("../pages/Registration"));
+const VerifyEmail = lazy(() => import("../pages/VerifyEmail"));
 
 
 const AppRoutes = () => {
@@ -31,6 +32,7 @@ const AppRoutes = () => {
             <Route path="contact" element={<Contact />} />
             <Route path="login" element={<Login />} />
             <Route path="register" element={<Register />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
           </Routes>
         </Layout>
       </Suspense>
