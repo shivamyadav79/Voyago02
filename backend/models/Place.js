@@ -8,7 +8,7 @@ const placeSchema = new mongoose.Schema({
   type: { type: String, required: true },
   description: { type: String, required: true },
   rating: { type: Number, default: 0, min: 0, max: 5, required: true },
-  images: [{ type: String, required: true }],
+  images: [{ type: String, required: false }],
   location: {
     address: { type: String, required: true },
     coordinates: { type: [Number], index: '2dsphere' }, // [longitude, latitude] for maps

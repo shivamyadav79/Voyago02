@@ -220,3 +220,117 @@ const Reviews = ({ reviews = [] }) => {
 };
 
 export default PlaceDetails;
+
+
+
+
+//admin city 
+
+
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchCities, createCity, deleteCity } from "../../Store/Slice/adminCitySlice";
+
+const AdminCityPanel = () => {
+  const dispatch = useDispatch();
+  const { cities = [], loading, error } = useSelector((state) => {
+    console.log("Redux State:", state.adminCity);
+    return state.adminCity || { cities: [], loading: false, error: null };
+  });
+  const [newCity, setNewCity] = useState({ name: "", description: "" });
+
+  useEffect(() => {
+    dispatch(fetchCities()).then((result) => {
+      console.log("Fetched Cities:", result.payload);
+    });
+  }, [dispatch]);
+  
+  const handleCreateCity = () => {
+    if (newCity.name.trim()) {
+      dispatch(createCity(newCity));
+      setNewCity({ name: "", description: "" });
+    }
+  };
+
+  const handleDeleteCity = (cityId) => {
+    dispatch(deleteCity(cityId));
+  };
+
+  return (
+    <div className="p-6 space-y-6 bg-gray-100 min-h-screen">
+      <h1 className="text-3xl font-bold text-gray-800">City Management</h1>
+
+      {/* Create City */}
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h2 className="text-xl font-semibold text-gray-700 mb-4">Add New City</h2>
+        <input
+          type="text"
+          placeholder="City Name"
+          className="w-full p-2 border rounded mb-2"
+          value={newCity.name}
+          onChange={(e) => setNewCity({ ...newCity, name: e.target.value })}
+        />
+        <input
+          type="text"
+          placeholder="Description"
+          className="w-full p-2 border rounded mb-2"
+          value={newCity.description}
+          onChange={(e) => setNewCity({ ...newCity, description: e.target.value })}
+        />
+        <button
+          onClick={handleCreateCity}
+          disabled={!newCity.name.trim()}
+          className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 disabled:bg-gray-300"
+        >
+          Create City
+        </button>
+      </div>
+
+      {/* City List */}
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h2 className="text-xl font-semibold text-gray-700 mb-4">City List</h2>
+        {loading ? (
+          <p className="text-gray-500">Loading cities...</p>
+        ) : error ? (
+          <p className="text-red-500">Error: {error}</p>
+        ) : (
+          <table className="w-full border-collapse border border-gray-300">
+            <thead>
+              <tr className="bg-gray-200">
+                <th className="border border-gray-300 p-2">Name</th>
+                <th className="border border-gray-300 p-2">Description</th>
+                <th className="border border-gray-300 p-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Array.isArray(cities) && cities.length > 0 ? (
+                cities.map((city) => (
+                  <tr key={city._id} className="hover:bg-gray-100">
+                    <td className="border border-gray-300 p-2">{city.name}</td>
+                    <td className="border border-gray-300 p-2">{city.description}</td>
+                    <td className="border border-gray-300 p-2 text-center">
+                      <button
+                        onClick={() => handleDeleteCity(city._id)}
+                        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="3" className="text-center text-gray-500 p-4">
+                    No cities available
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default AdminCityPanel;

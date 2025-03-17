@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useDispatch, useSelector } from "react-redux";
-import { registerUser } from "../Store/Slice/authSlice.js";
+import { registerUser } from "../Store/Slice/AuthSlice";
 import { Link, useNavigate } from "react-router-dom";
 import * as z from "zod";
 import { useEffect } from "react";

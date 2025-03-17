@@ -1,16 +1,42 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5002/api";
+import Cookies from "js-cookie";
 
+const api = axios.create({
+  baseURL: API_URL,
+  withCredentials: true
+});
 
+// Request Interceptor
+api.interceptors.request.use(
+  async (config) => {
+      const token = Cookies.get("accessToken");
+      if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+  },
+  (error) => Promise.reject(error)
+);
 
-axios.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-}, (error) => Promise.reject(error));
+// Response Interceptor
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+      const originalRequest = error.config;
 
+      if (error.response.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+          await store.dispatch(refreshToken());
+          originalRequest.headers.Authorization = `Bearer ${Cookies.get("accessToken")}`;
+          return api(originalRequest);
+      }
+      return Promise.reject(error);
+  }
+);
 
+const token = Cookies.get("accessToken");
 
 
 // ✅ Register User
@@ -28,6 +54,8 @@ export const registerUser = createAsyncThunk("auth/register", async (userData, {
 export const loginUser = createAsyncThunk("auth/login", async (userData, { rejectWithValue }) => {
   try {
     const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, userData);
+    Cookies.set("accessToken", data.accessToken, { secure: true, sameSite: "Strict" });
+    Cookies.set("refreshToken", data.refreshToken, { secure: true, sameSite: "Strict" });
     return data;
   } catch (error) {
     return rejectWithValue(error.response?.data?.message || "Login failed.");
@@ -54,12 +82,17 @@ export const logout = createAsyncThunk(
   "auth/logout",
   async (_, { rejectWithValue }) => {
     try {
-      await axios.post(`${API_URL}/logout`, {}, { withCredentials: true });
+      await axios.post(`${API_URL}/auth/logout`, {}, { withCredentials: true });
+
+      // ✅ Remove tokens and user data
+      Cookies.remove("accessToken");
+      Cookies.remove("refreshToken");
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+
       return null;
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data || "Logout failed"
-      );
+      return rejectWithValue(error.response?.data || "Logout failed");
     }
   }
 );
@@ -101,24 +134,36 @@ export const resetPassword = createAsyncThunk(
   }
 );
 
+
+export const refreshToken = createAsyncThunk("auth/refreshToken", async (_, { rejectWithValue }) => {
+  try {
+      const { data } = await axios.post(`${API_URL}/refresh-token`, {
+          refreshToken: Cookies.get("refreshToken"),
+      });
+      Cookies.set("accessToken", data.accessToken, { secure: true, sameSite: "Strict" });
+      return data;
+  } catch (error) {
+      return rejectWithValue(error.response.data);
+  }
+});
+
+
 const initialState = {
-  user: null,
+  user: JSON.parse(localStorage.getItem("user")) || null, // ✅ Store user in localStorage
   loading: false,
   error: null,
   token: null,
-  message: null, // For success messages (e.g., password reset email sent)
+  message: null,
+  isAdmin : false, // For success messages (e.g., password reset email sent)
 };
 
 const authSlice = createSlice({
   name: "auth",
-  initialState,
-  reducers: {
-    clearAuthError: (state) => {
-      state.error = null;
-    },
-    clearAuthMessage: (state) => {
-      state.message = null;
-    },
+  initialState: {
+    user: JSON.parse(localStorage.getItem("user")) || null,
+    token: localStorage.getItem("token") || null,
+    loading: false,
+    error: null,
   },
   extraReducers: (builder) => {
     builder
@@ -139,16 +184,24 @@ const authSlice = createSlice({
       .addCase(loginUser.pending, (state) => {
         state.loading = true;
         state.error = null;
-      })
-      .addCase(loginUser.fulfilled, (state, action) => {
+    })
+    .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload;
-      })
-      .addCase(loginUser.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.isAdmin = action.payload.user?.isAdmin || false; // Ensure isAdmin is set
 
+        // 🔥 Store token for persistence
+        
+            localStorage.setItem("token", action.payload.token);
+            localStorage.setItem("user", JSON.stringify(action.payload.user));
+           console.log("User Data:", action.payload.user);  // 🔥 Debug user data
+
+    })
+    .addCase(loginUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || "Login failed";
+    })
       // ✅ Fetch Profile
       .addCase(me.pending, (state) => {
         state.loading = true;
@@ -167,11 +220,9 @@ const authSlice = createSlice({
         state.loading = true;
       })
       .addCase(logout.fulfilled, (state) => {
-        state.loading = false;
         state.user = null;
         state.token = null;
-        state.error = null;
-        localStorage.removeItem("token"); // Already resets state, so remove redundant reset
+        state.loading = false;
       })
       .addCase(logout.rejected, (state, action) => {
         state.loading = false;
@@ -220,7 +271,17 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
         state.user = null;
-      });
+      })
+      .addCase(refreshToken.fulfilled, (state, action) => {
+        state.isAuthenticated = true;
+        state.user = action.payload.user;
+        state.token = action.payload.accessToken; // 🔥 Update token
+    })
+    
+    .addCase(refreshToken.rejected, (state) => {
+        state.isAuthenticated = false;
+        state.user = null;
+    });
   },
 });
 

@@ -8,6 +8,13 @@ const UserSchema = new mongoose.Schema(
     password: { type: String, required: function () { return !this.googleId; } },
     googleId: { type: String, unique: true, sparse: true },
     avatar: { type: String },
+    loginHistory: [
+      {
+        ip: String,
+        device: String,
+        timestamp: { type: Date, default: Date.now }
+      }
+    ],
     
     // ✅ Add the `isVerified` field (default: false)
     isVerified: { type: Boolean, default: false }

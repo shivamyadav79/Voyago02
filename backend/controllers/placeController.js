@@ -57,23 +57,73 @@ export const searchPlaceByName = async (req, res) => {
 
 export const createPlace = async (req, res) => {
   try {
-    const place = new Place(req.body);
+    console.log("Received request body:", req.body);
+
+    let { name, city, type, description, rating, images, location, famous } = req.body;
+
+    if (!name || !city || !type || !description || rating === undefined || !images || !location || !famous) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    if (typeof city !== "string") {
+      return res.status(400).json({ message: "City ID must be a string" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(city)) {
+      return res.status(400).json({ message: "Invalid city ID format" });
+    }
+
+    city = new mongoose.Types.ObjectId(city); // ✅ Convert city to ObjectId before saving
+
+    if (!Array.isArray(images) || images.length === 0) {
+      return res.status(400).json({ message: "Images must be an array" });
+    }
+
+    if (typeof rating !== "number" || isNaN(rating) || rating < 0 || rating > 5) {
+      return res.status(400).json({ message: "Invalid rating value" });
+    }
+
+    console.log("Validated data:", { name, city, type, description, rating, images, location, famous });
+
+    const place = new Place({ name, city, type, description, rating, images, location, famous });
     await place.save();
-    res.status(201).json({ message: 'Place created', place });
+
+    res.status(201).json({ message: "Place created", place });
   } catch (error) {
-    res.status(500).json({ message: 'Place creation failed', error: error.message });
+    console.error("Error creating place:", error);
+    res.status(500).json({ message: "Place creation failed", error: error.message });
   }
 };
 
 export const updatePlace = async (req, res) => {
   try {
-    const place = await Place.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!place) return res.status(404).json({ message: 'Place not found' });
-    res.status(200).json({ message: 'Place updated', place });
+    const { id } = req.params;
+
+    // ✅ Ensure valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid Place ID" });
+    }
+
+    // ✅ Prevent `_id` updates manually
+    delete req.body._id;
+
+    // ✅ Validate data & return updated place
+    const updatedPlace = await Place.findByIdAndUpdate(id, req.body, {
+      new: true,
+      runValidators: true, // ✅ Enforce schema validation
+    });
+
+    if (!updatedPlace) {
+      return res.status(404).json({ message: "Place not found" });
+    }
+
+    res.status(200).json({ message: "Place updated successfully", place: updatedPlace });
   } catch (error) {
-    res.status(500).json({ message: 'Place update failed', error: error.message });
+    console.error("Update error:", error);
+    res.status(500).json({ message: "Place update failed", error: error.message });
   }
 };
+
 
 export const deletePlace = async (req, res) => {
   try {

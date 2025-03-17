@@ -1,78 +1,109 @@
-import { useForm } from "react-hook-form";
+import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { loginUser } from "../Store/Slice/authSlice";
-import { Link, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { loginUser } from "../Store/Slice/AuthSlice";
 
 const Login = () => {
-  const dispatch = useDispatch();
-  const { loading, user, error } = useSelector((state) => state.auth);
-  const navigate = useNavigate();
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const { user, error } = useSelector((state) => state.auth) || {}; // Ensure safe access
 
-  useEffect(() => {
-    if (user) navigate("/");
-  }, [user, navigate]);
+    useEffect(() => {
+      if (user && user.role) {
+        navigate(user.role === "admin" ? "/admin" : "/");
+      }
+    }, [user, navigate]); // Redirect after successful login
 
-  const { register, handleSubmit } = useForm();
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        dispatch(loginUser({ email, password }));
+    };
 
-  const onSubmit = (data) => {
-    dispatch(loginUser(data));
-  };
-
-  const handleGoogleLogin = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL}/google`;
-  };
-
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-96">
-        <h2 className="text-2xl font-semibold text-center mb-4">Login</h2>
-
-        {error && <p className="text-red-500 text-center">{error}</p>}
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <input
-            {...register("email")}
-            placeholder="Email"
-            className="w-full p-2 border rounded"
-          />
-          <input
-            {...register("password")}
-            type="password"
-            placeholder="Password"
-            className="w-full p-2 border rounded"
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full p-2 bg-blue-500 text-white rounded"
-          >
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
-
-        <button
-          onClick={handleGoogleLogin}
-          className="w-full p-2 bg-red-500 text-white rounded mt-4"
-        >
-          Login with Google
-        </button>
-
-        <p className="text-center mt-4">
-          Forgot password?{" "}
-          <Link to="/forgot-password" className="text-blue-500">
-            Reset
-          </Link>
-        </p>
-        <p className="text-center mt-4">
-          New user?{" "}
-          <Link to="/register" className="text-blue-500">
-            Register
-          </Link>
-        </p>
-      </div>
-    </div>
-  );
+    return (
+        <div className="flex items-center justify-center min-h-screen bg-gray-100">
+            <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-lg">
+                <div className="text-center">
+                    <h2 className="text-3xl font-bold text-gray-800">Login</h2>
+                    <p className="mt-2 text-sm text-gray-600">Enter your credentials to access your account</p>
+                </div>
+                
+                {error && (
+                    <div className="p-4 text-sm text-red-700 bg-red-100 rounded-md">
+                        {error}
+                    </div>
+                )}
+                
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                            Email
+                        </label>
+                        <input
+                            id="email"
+                            // type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            // required
+                            className="w-full px-4 py-2 mt-1 text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="your@email.com"
+                        />
+                    </div>
+                    
+                    <div>
+                        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                            Password
+                        </label>
+                        <input
+                            id="password"
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            className="w-full px-4 py-2 mt-1 text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="••••••••"
+                        />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                            <input
+                                id="remember-me"
+                                type="checkbox"
+                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <label htmlFor="remember-me" className="block ml-2 text-sm text-gray-700">
+                                Remember me
+                            </label>
+                        </div>
+                        
+                        <div className="text-sm">
+                            <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+                                Forgot your password?
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <button
+                        type="submit"
+                        className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    >
+                        Sign in
+                    </button>
+                    
+                    <div className="text-center">
+                        <p className="text-sm text-gray-600">
+                            Don't have an account?{" "}
+                            <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+                                Sign up
+                            </a>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
 };
 
 export default Login;

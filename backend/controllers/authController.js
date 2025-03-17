@@ -126,11 +126,12 @@ export const login = async (req, res) => {
     if (!user.isVerified) {
       return res.status(400).json({ message: "Please verify your email before logging in." });
     }
-
+    user.loginHistory.push({ ip: req.ip, device: req.headers['user-agent'] });
+    await user.save();
     // Generate token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
-    res.status(200).json({ message: "Login successful", token, user });
+    res.status(200).json({ message: "Login successful", token, user, role: user.role });
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -199,9 +200,41 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-// ✅ Logout User
-export const logout = async (req, res) => {
-  req.logout();
-  res.clearCookie("token");
-  res.status(200).send({ message: "Logged out successfully" });
-};
+// ✅ Logout Userexport const logout = async (req, res, next) => {
+  export const logout = async (req, res, next) => {
+    req.logout(function (err) {
+      if (err) {
+        return next(err);
+      }
+      res.clearCookie("access_token", { httpOnly: true, secure: true }); // ✅ Ensure secure cookie clearing
+      res.clearCookie("token", { httpOnly: true, secure: true });
+      res.status(200).json({ message: "Logged out successfully" });
+    });
+  };
+
+
+  export const updateProfile = async (req, res, next) => {
+    try {
+      const { userId } = req.user;
+      const { username, email } = req.body;
+  
+      const user = await User.findByIdAndUpdate(
+        userId,
+        { username, email },
+        { new: true }
+      );
+  
+      if (!user) return res.status(404).json({ message: 'User not found' });
+  
+      // ✅ Log user action
+      await ActivityLog.create({
+        userId,
+        action: 'Updated Profile'
+      });
+  
+      res.status(200).json({ message: 'Profile updated', user });
+    } catch (error) {
+      next(error);
+    }
+  };
+  
